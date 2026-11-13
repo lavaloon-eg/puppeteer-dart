@@ -407,7 +407,15 @@ void _unzip(String path, String targetPath) {
     try {
       var result = Process.runSync('tar', ['-xf', path, '-C', targetPath]);
       if (result.exitCode != 0) {
-        throw Exception('Failed to unzip chrome binaries:\n${result.stderr}');
+        // When running from an MSIX package in an AppContainer (e.g. installed
+        // from the Microsoft store), paths are virtualized. The application
+        // support directory path we think we're working from:
+        //   "%USERPROFILE%\AppData\Roaming\Company\Application\"
+        // is actually mapped to something like:
+        //   "%USERPROFILE%\AppData\Local\Packages\Company.Application_hash\LocalCache\Roaming"
+        // So tar will fail to find the file in that case, and we fall back to simple unzip
+        // instead of failing
+        _simpleUnzip(path, targetPath);
       }
     } on ProcessException {
       _simpleUnzip(path, targetPath);
